@@ -21,6 +21,23 @@ I'll follow a cassandra like architecture where nodes maintain a virtual ring to
  - local clocks will be used, as they are already in sync with system clock.
  - The data will be stored in memory (in context of the process), no commit logs will be maintained; If all process die or some most die before replication data will be lost; 
 
+## Setup and tests
+Pre requisite
+ - Download nodejs and npm for windows
+ - Clone this repo: `git clone https://github.com/mebjas/dht-node.git`
+ - CD to process dir: `cd process` - this path contain the code for process
+ - Install the libraries - `npm install`
+ - Run Tests - `npm test`
+ - Initialize 24 nodes: `cd ..\ && .\init.cmd`
+
+To run just `N` nodes skip the last step and manually invoke an instance using:
+```cmd
+node process\index.js <portno> <introducer>
+```
+`<portno>` - port number or this instance
+
+`<introducer>` - port number of the introducer to which join request will be sent; Not needed for first instance - it will assume itself to be first instance because of this; I didn't go for any automatic discovery or centralized discovery mechanism here;
+
 ## Top level architecture
 ```
     ___________________________
@@ -55,6 +72,16 @@ Detecting failures in 24 nodes :D
 ![* nodes joined](./screenshot/membership_fd_24.PNG)
 
 ## TASK 1.2: Testing Membership Protocol
+
+1. Simple unit testing using mocha framework for node js. It's pretty new to me but seems pretty powerful. I have done basic testing will do advanced ones later. Also since the library depends on HTTP calls some mocks / stubs shall be needed.
+2. To Be Done is e2e testing of membership protocol<br>
+        - create nodes<br>
+        - JOIN nodes<br>
+        - FAILURES & Failure detection<br>
+        - Time to detection, accuracy of detection<br>
+        - congestion / message drop emulation<br>
+        - high load setup <br>
+
 ## TASK 2.1: Virtual ring topology
 ## TASK 2.2: Test Virtual ring topology
 ## TASK 3.1: Storage Replication & Stabalisation
