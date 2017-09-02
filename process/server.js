@@ -1,19 +1,16 @@
+// File deals with server
 const express = require('express')
+const bodyParser = require('body-parser')
 const sprintf = require("sprintf").sprintf;
 const Membership = require("./membership.js")
-const bodyParser = require('body-parser')
-
-// app.get('/', function (req, res) {
-//   res.send('Hello World!')
-// })
 
 var Server = function(port, introducer) {
     this.port = port;
     this.introducer = introducer;
     this.app = express();
-    this.app.use( bodyParser.json() );        // to support JSON-encoded bodies
-    this.app.use(bodyParser.urlencoded({      // to support URL-encoded bodies
-    extended: true
+    this.app.use(bodyParser.json());
+    this.app.use(bodyParser.urlencoded({
+        extended: true
     }));
     this.membership = null;
 
@@ -21,6 +18,7 @@ var Server = function(port, introducer) {
     this.init();
 }
 
+// Initialize the server
 Server.prototype.init = function() {
     var $this = this;
     // bind to the port

@@ -52,6 +52,7 @@ var Kernel = {
 
         // While there remain elements to shuffle...
         while (0 !== currentIndex) {
+            if (Math.random() > 0.5) continue;
 
             // Pick a remaining element...
             randomIndex = Math.floor(Math.random() * currentIndex);
@@ -63,7 +64,10 @@ var Kernel = {
             array[randomIndex] = temporaryValue;
         }
 
-        return array;
+        // shallow copy?
+        tmp = []
+        array.forEach(function(a) {tmp.push(a)})
+        return tmp;
     }
 }
 

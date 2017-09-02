@@ -4,7 +4,7 @@
   "description": "a distributed key value store from scratch",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "keywords": [
     "distributed",
@@ -14,7 +14,9 @@
   "license": "MIT",
   "dependencies": {
     "body-parser": "^1.17.2",
+    "chai": "^4.1.2",
     "express": "^4.15.4",
+    "mocha": "^3.5.0",
     "request": "^2.81.0",
     "sprintf": "^0.1.5"
   }

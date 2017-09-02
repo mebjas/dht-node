@@ -27,7 +27,7 @@ var Membership = function(app, port) {
     this.joinReqRetryCountTimeout = 1000;       // timeout for join req
     this.protocolPeriod = 0.5 * 1000;           // protocol period
     this.KMax = 1;                              // no of K for ping_req
-    this.suspisionLimit = 2;                    // No of times of protocol period
+    this.suspisionLimit = 4;                    // No of times of protocol period
                                                 // a node under suspision will be
                                                 // kept in quarentine
 
@@ -43,12 +43,13 @@ Membership.prototype.updateMyHeartbeat = function() {
 // Get a random node to ping, round robin on all nodes
 Membership.prototype.getNextNodeToPing = function() {
     var $this = this;
-    if (Object.keys(this.list).length <= 1) return 0;
 
     // randomly choose an entry other than self
     var receiverPort = 0;
     while (!receiverPort) {
+        if (Object.keys(this.list).length <= 1) return 0;
         if (this.pinglist.length == 0) {
+
             // TODO: pump again to round robin list
             tmp = []
             Object.keys(this.list).forEach(function(key) {

@@ -19,6 +19,7 @@ I'll follow a cassandra like architecture where nodes maintain a virtual ring to
  - Membership protocol: SWIM
  - No auth, No ssl
  - local clocks will be used, as they are already in sync with system clock.
+ - The data will be stored in memory (in context of the process), no commit logs will be maintained; If all process die or some most die before replication data will be lost; 
 
 ## Top level architecture
 ```
@@ -49,6 +50,9 @@ These screenshots are when 8 nodes were joined and two of them crashed
 ![* nodes joined](./screenshot/membership.PNG)
 
 ![* nodes joined](./screenshot/membership_fd.PNG)
+
+Detecting failures in 24 nodes :D 
+![* nodes joined](./screenshot/membership_fd_24.PNG)
 
 ## TASK 1.2: Testing Membership Protocol
 ## TASK 2.1: Virtual ring topology
