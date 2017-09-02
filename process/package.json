@@ -1,0 +1,21 @@
+{
+  "name": "dht-node",
+  "version": "0.0.0",
+  "description": "a distributed key value store from scratch",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "distributed",
+    "systems"
+  ],
+  "author": "minhazav@gmail.com",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "express": "^4.15.4",
+    "request": "^2.81.0",
+    "sprintf": "^0.1.5"
+  }
+}
