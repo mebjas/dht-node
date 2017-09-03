@@ -9,23 +9,23 @@ const Kernel = require('./kernel.js')
 
 // topology class
 var Topology = function(app, port, introducer = null) {
+    // REGION: Public variables
     this.app = app;
     this.port = port;
     this.datastore = new Datastore()
+    this.maxReplicas = 3;                       // Max no of replica of a data
+    this.quorumCount = 2;                       // Votes needed in Quorum
 
-    // private variables
-    // list of virtual IDS
+    // REGION: private variables ---------------------------------------------
     var $this = this;
-    var id = Kernel.hashPort(this.port);
-    var list = [id];
-    var listPortMapping = {};
+    var id = Kernel.hashPort(this.port);        // self id
+    var list = [id];                            // list of virtual IDS
+    var listPortMapping = {};                   // mapping of id to port
     listPortMapping[id] = this.port;
     
-    // some config numbers
-    this.maxReplicas = 3;               // Max no of replica of a data
-    this.quorumCount = 2;               // Votes needed in Quorum
+    // REGION: Private methods ---------------------------------------------
 
-    // stabalisation to perform when a new member joins
+    // stabalisation to perform when a new member joins - TODO: complete this
     var joinStabalisation = function(joinPort) {
         // for each K in datastore check what should belong here
         // and as to where they should belong. if they should belong
@@ -64,12 +64,13 @@ var Topology = function(app, port, introducer = null) {
         // TODO;
     }
     
+    // REGION: Constuctor code ---------------------------------------------
     this.membership = new Membership(app, port, joinStabalisation, churnStabalisation);
     if (introducer) {
         this.membership.sendJoinReq(introducer);
     }
 
-    // Initialize the internal apis
+    // Initialize the internal apis  --------
     // READ API
     this.app.get('/d/read', function(req, res) {
         var key = req.query.key;
@@ -131,7 +132,7 @@ var Topology = function(app, port, introducer = null) {
         }
     });
     
-    // Some public methods that shall use private variables
+    // REGION: public methods that shall use private variables
     // TODO: below three methods seems to have some code overlap
     // check what can be taken out of it;
     
@@ -333,17 +334,6 @@ var Topology = function(app, port, introducer = null) {
                 );
             }
         });
-    }
-}
-
-Topology.prototype.delete = function(key, callback) {
-    // TODO: delete key
-    try {
-        this.datastore.delete(key);
-        callback(null);
-    }
-    catch (ex) {
-        callback(ex);
     }
 }
 

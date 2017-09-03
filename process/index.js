@@ -28,7 +28,8 @@ if (process.argv.length > 3) {
     }
 }
 
-console.log(sprintf("Process spawned with port: %d introducer: %s",
+console.log(
+    sprintf("Process spawned with port: %d introducer: %s",
     port, (introducer) ? introducer : "NONE"));
 
 // Bind to port; and INIT

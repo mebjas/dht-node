@@ -44,6 +44,7 @@ var Kernel = {
             throw Error(sprintf("Unknown request type: %s", type))
         }
     },
+
     // static method to get current timestamp
     getTimestamp: function() {
         return (new Date()).getTime();
@@ -138,7 +139,7 @@ var Kernel = {
 
     // Method to check if 
     isAReplica: function(index1, index2, ringSize) {
-
+        throw Error("NotImplementedException")
     }
 }
 
