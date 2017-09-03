@@ -45,6 +45,45 @@ describe('Kernel', function() {
                 if (!(hash in collisionDict)) collisionDict[hash] = 0
                 collisionDict[hash] += 1
             }
+
+            assert.equal(0, Kernel.hashPort(8080))
+            assert.ok(Kernel.hashPort(8100) >= 0)
+            assert.ok(Kernel.hashPort(8100) < 256)
+        });
+    });
+
+    describe('#hash()', function() {
+        it('should give same values each time', function() {
+            assert.ok(Kernel.hash("something") > 0)
+            assert.equal(Kernel.hash("something"), Kernel.hash("something"))
+        });
+
+        it('should give correct value', function() {
+            assert.equal(191, Kernel.hash("something"))
+        });
+    });
+
+    describe('#hashKey()', function() {
+        it('should give correct value in range', function() {
+            var val = Kernel.hashKey("something", 10, 5);
+            assert.equal(val.length, 5);
+        });
+
+        it('should give correct value when max < max replica', function() {
+            var val = Kernel.hashKey("something", 2, 5);
+            assert.equal(val.length, 2);
+        });
+
+        it('should throw exception for wrong input', function() {
+            try {
+                Kernel.hashKey("something", 0, 5);
+            } catch (ex) {
+                assert.ok(true);
+            }
+        });
+
+        it('should give same value each time', function() {
+            var val = Kernel.hashKey("something", 10, 5);
         });
     });
 });

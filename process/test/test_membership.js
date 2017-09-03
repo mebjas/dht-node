@@ -14,7 +14,7 @@ var app = express()
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-var testPort = 8080;
+var testPort = 8090;
 app.listen(testPort);
 
 var membership = new Membership(app, testPort);
