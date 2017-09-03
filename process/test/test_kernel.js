@@ -34,4 +34,17 @@ describe('Kernel', function() {
             assert.ok(arr != arr1)
         });
     });
+
+    describe('#hashPort()', function() {
+        it('should have different hash for 8080 - 8100 port range', function() {
+            var collisionDict = {};
+            for (j = 8080; j <= 8100; j++) {
+                var hash = Kernel.hashPort(j);
+                assert.ok(!(hash in collisionDict))
+
+                if (!(hash in collisionDict)) collisionDict[hash] = 0
+                collisionDict[hash] += 1
+            }
+        });
+    });
 });

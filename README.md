@@ -83,11 +83,82 @@ Detecting failures in 24 nodes :D
         - high load setup <br>
 
 ## TASK 2.1: Virtual ring topology
+Now that underlying membership protocol works reasonably well and it can both detect failures and disemminate information in Gossip style to other nodes we can build the next layer - the virtual topology.
+
+Each node is a member of the ring and their position is calculated based on a hash function of this format:
+```js
+hash: function(key) {
+        if (!key) {
+                throw Error("ArgumentException");
+        }
+
+        var hash = 0
+        for (i = 0; i < key.length; i++) {
+                if (key[i].charCodeAt(0) < 97) {
+                hash += (key[i].charCodeAt(0) - 48);
+                } else {
+                hash += ((key[i].charCodeAt(0) - 97) + 10);
+                }
+        }
+        return hash;
+}
+
+positionInRing = hash(sha1(port).substr(0, 40))
+```
+### Note: this function is very crude and has only been tested to give collision free ids to each port in range [8080, 8100]. Some collisions were observed beyond this range. If you are reproducing, you are adviced to instantiate nodes with similar range or change the hash function to a more appropriate one; This one gives value between [0, 600].
+
+### Some other points
+ - Any no of nodes can be created; given their hash shouldn't collide;
+ - Max Replication per key was set to 3, can be tested with more;
+ - Quorum count in this case was sent to 2;
+
+Flow:
+1. For every request (CRUD) the hash of key is computed and it gives an index in range `[0, no of nodes)`. Replications are done in this index to next `X` nodes in ring (given by `MaxReplicationCount`). If no of nodes is less than this value all nodes replicate all key value pair;
+2. Requests are sent to all replicas and once the quorum has replied with +ve response the response is sent to client - CRUD;
+3. In case of failure to obtain a quorum request is replied with failure;
+
+
 ## TASK 2.2: Test Virtual ring topology
+TBD
+
 ## TASK 3.1: Storage Replication & Stabalisation
+Storage of data is abstracted out by `datastore.js`. Replication is done based on above mentioned approach; If during a read, members in a qourum respond with diff value - latest value is sent to client and `read-repair` for stale values is initiated;
+
+### Task 3.1.2: Stabalisation - TBD
+Stabalisation need to be done every time a new node joins or leaves the system.
+
 ## TASK 3.2: Test Storage Replication & Stabalisation
+TBD
 
 ## TASK 4: Rest API + Test - final
+To the client the nodes expose three apis
+
+/Get a Key
+```
+GET /s/key?key=key9 HTTP/1.1
+Host: localhost:8083
+```
+
+/Set a key
+```
+POST /s/key HTTP/1.1
+Host: localhost:8080
+Content-Type: application/json
+
+{
+	"key": "key9",
+	"value": "value9"
+}
+```
+
+/Delete a key
+```
+DELETE /s/key?key=key9 HTTP/1.1
+Host: localhost:8081
+```
+## References:
+ - Coursera Cloud Computing Concepts, Part 1 - https://www.coursera.org/learn/cloud-computing/home/welcome
+ - 
 
 
 

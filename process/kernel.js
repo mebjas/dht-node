@@ -3,15 +3,18 @@
 //// Mutliple instances of this class are not needed;
 //// this can pretty well be a singleton class;
 
-const sprintf = require("sprintf").sprintf;
 const request = require('request');
-
-var _kernel;
+const sha1 = require('sha1');
+const sprintf = require('sprintf').sprintf;
 
 var Kernel = {
     // disemminator of any request
     // @param: port (int)
     send: function(port, path, type, object, callback, errcallback) {
+        if (!port || !path || !type) {
+            throw Error("ArgumentException");
+        }
+        
         var url = sprintf("http://localhost:%d/%s", port, path);
         switch (type) {
             case "GET":
@@ -31,7 +34,11 @@ var Kernel = {
             break;
 
             case "DELETE":
-            throw Error("NotImplementedException");
+            url += '?' +object;
+            request.delete(url, function(err, response, body) {
+                if (err && errcallback) errcallback(err);
+                if (!err && callback) callback(response, body);
+            });
             break;
             default:
             throw Error(sprintf("Unknown request type: %s", type))
@@ -44,10 +51,19 @@ var Kernel = {
 
     // random generator
     random: function(min, max) {
+        if (min > max) {
+            throw Error("Invalid args; min need to be <= max");
+        }
+
         return Math.floor((Math.random() * (max - min) % (max-min))) + min;
     },
 
+    // Method to shuffle an array
     shuffle: function(array) {
+        if (!array) {
+            throw Error("ArgumentException");
+        }
+
         var currentIndex = array.length, temporaryValue, randomIndex;
 
         // While there remain elements to shuffle...
@@ -68,6 +84,57 @@ var Kernel = {
         tmp = []
         array.forEach(function(a) {tmp.push(a)})
         return tmp;
+    },
+
+    // method to calculate hash count of any key
+    hash: function(key) {
+        if (!key) {
+            throw Error("ArgumentException");
+        }
+
+        var hash = 0
+        for (i = 0; i < key.length; i++) {
+            if (key[i].charCodeAt(0) < 97) {
+                hash += (key[i].charCodeAt(0) - 48);
+            } else {
+                hash += ((key[i].charCodeAt(0) - 97) + 10);
+            }
+        }
+        return hash;
+    },
+
+    // hash function for port. Note: this seem to be a very week
+    // method. But I have observed it to give unique value for port
+    // 8080 - 8100; range [0, 600]
+    hashPort: function(port) {
+        if (!port) {
+            throw Error("ArgumentException");
+        }
+
+        return this.hash(sha1(port).substr(0, 40))
+    },
+
+    // find the index position of given key in DHT
+    hashKey: function(key, max, maxReplicas) {
+        if (max < 1 || maxReplicas < 1 || !key) {
+            throw Error("ArgumentException");
+        }
+
+        var indexes = [];
+        if (max < maxReplicas) {
+            for(i = 0; i < max; i++) indexes.push(i);
+        } else {
+            var _hash = this.hash(sha1(key));
+            for (i = 0; i < maxReplicas; i++) {
+                indexes.push((_hash + i)% max);
+            }
+        }
+        return indexes;
+    },
+
+    // Method to check if 
+    isAReplica: function(index1, index2, ringSize) {
+
     }
 }
 

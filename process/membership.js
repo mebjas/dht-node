@@ -2,16 +2,22 @@
 // attempted to implement SWIM protocol
 
 const express = require('express')
-const sprintf = require("sprintf").sprintf;
-const Kernel = require("./kernel.js");
+const sprintf = require('sprintf').sprintf;
+const Kernel = require('./kernel.js');
 
 // The membership class - constuctor
-var Membership = function(app, port) {
+var Membership = function(app, port, joincb, churncb) {
     // initialize with these variables
+    // TODO: make all these private variables
+    // bring in the public methods
     this.app = app;
     this.port = port;
+    this.joincb = joincb;
+    this.churncb = churncb;
 
     // Membership list - initialised with self
+    // TODO: make this member private, provide public methods
+    // to expose;
     this.list = {};
     this.list[this.port] = {
         heartbeat: Kernel.getTimestamp(),
@@ -25,9 +31,9 @@ var Membership = function(app, port) {
     this.joinReqRetryCount = 0;                 // count of attempts of joinreq
     this.joinReqRetryCountThreshold = 3;        // threshold for above count
     this.joinReqRetryCountTimeout = 1000;       // timeout for join req
-    this.protocolPeriod = 0.5 * 1000;           // protocol period
+    this.protocolPeriod = 2 * 1000;           // protocol period
     this.KMax = 1;                              // no of K for ping_req
-    this.suspisionLimit = 4;                    // No of times of protocol period
+    this.suspisionLimit = 2;                    // No of times of protocol period
                                                 // a node under suspision will be
                                                 // kept in quarentine
 
@@ -53,8 +59,10 @@ Membership.prototype.getNextNodeToPing = function() {
             // TODO: pump again to round robin list
             tmp = []
             Object.keys(this.list).forEach(function(key) {
-                if (key != $this.port) tmp.push(key);
+                if (key != $this.port && $this.list[key].status == "active")
+                    tmp.push(key);
             });
+            if (tmp.length == 0) return 0;
             this.pinglist = Kernel.shuffle(tmp);
         }
         var key = this.pinglist.shift();
@@ -72,10 +80,12 @@ Membership.prototype.addToList = function(port, heartbeat) {
         status: "active"
     };
     console.log("JOINED: " +port);
+    if (this.joincb) this.joincb(port);
 }
 
 // Helper method to update the membership list
 Membership.prototype.updateList = function(port, status, heartbeat = null) {
+    var $this = this;
     if (heartbeat == null) {
         if (!(port in this.list)) return;
         this.list[port].status = status;
@@ -95,11 +105,11 @@ Membership.prototype.updateList = function(port, status, heartbeat = null) {
                 if (this.list[port].status != "active") {
                     console.log("failed: %s", port)
                     delete this.list[port];
+                    if ($this.churncb) $this.churncb(port)
                 } else {
                     console.log("suspicion over: %s", port)
                 }
             }.bind(this), this.protocolPeriod * this.suspisionLimit);
-            // }.bind(this), this.protocolPeriod * Object.keys(this.list).length);
         }
     }
 }
@@ -197,7 +207,6 @@ Membership.prototype.sendJoinReq = function(receiverPort) {
             try {
                 $this.mergeList(JSON.parse(body)["list"]);
             } catch (ex) {
-                debugger;
                 errorCallback(ex);
             }
         }, errorCallback);
@@ -287,7 +296,7 @@ Membership.prototype.sendPingEnd = function(receiverPort) {
         setTimeout(function() {
             delete $this.list[receiverPort];
             console.log("failed: %s", receiverPort)
-        // }, this.protocolPeriod * Object.keys(this.list).length);
+            if ($this.churncb) $this.churncb(receiverPort);
         }, this.protocolPeriod * this.suspisionLimit);
     }
     this.sendPing();
