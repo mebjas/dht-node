@@ -22,46 +22,125 @@ var Topology = function(app, port, introducer = null) {
     var list = [id];                            // list of virtual IDS
     var listPortMapping = {};                   // mapping of id to port
     listPortMapping[id] = this.port;
+
+    var stabalisationInProcess = false;         // stabalisation state
+    var stabalisationWaitTimeout = 1000;        // timeout for stabalisation
+    var stabalisationRetryLimit = 5;            // retry limit for stabalisation wait;
     
     // REGION: Private methods ---------------------------------------------
-
-    // stabalisation to perform when a new member joins - TODO: complete this
-    var joinStabalisation = function(joinPort) {
-        // for each K in datastore check what should belong here
-        // and as to where they should belong. if they should belong
-        // to new node / a node which doesn't already have it
-        // club the data, and send it to them.
-        // A given node should only be conserned about it's adjoining
-        // maxReplicas - 1 nodes in the ring.
-
-        // once sent to all, delete from here;
-        // assume list is sorted; look for the position of this port
-        var joinPortId = Kernel.hashPort(joinPort);
-        listPortMapping[joinPortId] = joinPort;
-        var stabalisationNeeded = false;
-        if (list.indexOf(joinPortId) != -1) {
-            console.log("STABALISATION_HALT, already in: ", joinPort, joinPortId);
+    // sending stabalisation message to all;
+    var sendStabalisationMessage = function(port, data, callback, retryCount = 0) {
+        if (retryCount > stabalisationRetryLimit) {
+            console.log("SendStabalisation retry exceeded, port", port);
+            callback();
             return;
         }
 
-        list.push(joinPortId);
+        port = parseInt(port);
+        if (port == $this.port) return callback();
+
+        Kernel.send(
+            parseInt(port),
+            "d/stabalisation",
+            "POST",
+            {data: data},
+            function(response, body) {
+                callback();
+            }, function(err) {
+                sendStabalisationMessage(port, data, callback, retryCount + 1);
+            }
+        );
+    }
+
+    // Common stabalisation method
+    var stabalisation = function() {
         list.sort(function(a, b) {
             return (a > b) ? 1 : -1;
         });
-        // var newIndex = this.list.indexOf(this.id);
-        // var joinPortIndex = this.list.indexOf(joinPortId);
 
-        // check if joinPortIndex is in newIndex + maxReplicast % ring size
+        var newIndex = list.indexOf(id);
+        var stabalsiationMetadata = $this.datastore.getRemappedData(
+            newIndex, list.length, $this.maxReplicas);
+        
+        if (Object.keys(stabalsiationMetadata).length == 0) {
+            stabalisationInProcess = false;
+            return;
+        }
 
-        // console.log("JOINSTABALISATION")
-        // console.log(list)
+        var stabalised = 0;
+        Object.keys(stabalsiationMetadata).forEach(function(_id) {
+            var port = listPortMapping[_id];
+            sendStabalisationMessage(port, stabalsiationMetadata[_id], function() {
+                ++stabalised;
+                if (stabalised >= Object.keys(stabalsiationMetadata).length) {
+                    stabalisationInProcess = false;
+                    $this.datastore.removeStabalsiedKeys(newIndex, list.length, $this.maxReplicas);
+                }
+            });
+        });
+    }
 
-        // TODO: implement this;
+    // stabalisation to perform when a new member joins - TODO: complete this
+    var joinStabalisation = function(joinPort, retryCount = 0) {
+        if (retryCount > stabalisationRetryLimit) {
+            // not harmful as it sounds
+            // console.log("retry limit for stabalisation; port:", joinPort)
+            return;
+        }
+
+        if (stabalisationInProcess) {
+            setTimeout(function() {
+                joinStabalisation(joinPort, retryCount + 1)
+            }, stabalisationWaitTimeout);
+            return;
+        }
+
+        stabalisationInProcess = true;
+        console.log("Stabalisation (+ve): ", joinPort)
+        var joinPortId = Kernel.hashPort(joinPort);
+        listPortMapping[joinPortId] = joinPort;
+
+        if (list.indexOf(joinPortId) != -1) {
+            console.log("STABALISATION_HALT, already in: ", joinPort, joinPortId);
+            stabalisationInProcess = false;
+            return;
+        }
+
+        // add to list
+        list.push(joinPortId);
+        stabalisation();
     }
 
     // statbalisation to perform when an old member leaves
-    var churnStabalisation = function(chrunPort) {
-        // TODO;
+    var churnStabalisation = function(chrunPort, retryCount = 0) {
+        if (retryCount > stabalisationRetryLimit) {
+            // Not harmful as it sounds
+            // console.log("retry limit for stabalisation; port:", chrunPort)
+            return;
+        }
+
+        if (stabalisationInProcess) {
+            setTimeout(function() {
+                churnStabalisation(chrunPort, retryCount + 1)
+            }, stabalisationWaitTimeout);
+            return;
+        }
+
+        stabalisationInProcess = true;
+        console.log("Stabalisation (-ve): ", chrunPort)
+        var chrunPortId = Kernel.hashPort(chrunPort);
+
+        if (list.indexOf(chrunPortId) == -1) {
+            console.log("STABALISATION_HALT, already not in: ", chrunPort, chrunPortId);
+            stabalisationInProcess = false;
+            return;
+        }
+
+        // remove this from list
+        const index = list.indexOf(chrunPortId);
+        list.splice(index, 1);
+
+        stabalisation();
     }
     
     // REGION: Constuctor code ---------------------------------------------
@@ -131,13 +210,27 @@ var Topology = function(app, port, introducer = null) {
             res.json({ack: true})
         }
     });
+
+    // STABALISATION API
+    this.app.post('/d/stabalisation', function(req, res) {
+        var data = req.body.data;
+        console.log("dStabalisation: Count", data.length);
+        data.forEach(function(d) {
+            try {
+                $this.datastore.set(d.key, d.value.value, d.value.timestamp);
+            } catch (ex) {
+                // expected; its ok
+            }
+        });
+        res.json({ack: true});
+    });
     
     // REGION: public methods that shall use private variables
     // TODO: below three methods seems to have some code overlap
     // check what can be taken out of it;
     
     // Method to get the key
-    this.get = function(key, callback) {
+    this.get = function(key, callback, retryCount = 0) {
         if (!key || !callback) {
             throw Error("ArgumentException")
         }
@@ -225,7 +318,7 @@ var Topology = function(app, port, introducer = null) {
     }
 
     // Method to set the key
-    this.set = function(key, value, callback) {
+    this.set = function(key, value, callback, retryCount = 0) {
         if (!key || !value || !callback) {
             throw Error("ArgumentException");
         }
@@ -279,7 +372,7 @@ var Topology = function(app, port, introducer = null) {
     }
 
     // Method to delete a key
-    this.delete = function(key, callback) {
+    this.delete = function(key, callback, retryCount = 0) {
         if (!key || !callback) {
             throw Error("ArgumentException")
         }

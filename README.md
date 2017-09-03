@@ -113,8 +113,8 @@ TBD
 ## TASK 3.1: Storage Replication & Stabalisation
 Storage of data is abstracted out by `datastore.js`. Replication is done based on above mentioned approach; If during a read, members in a qourum respond with diff value - latest value is sent to client and `read-repair` for stale values is initiated;
 
-### Task 3.1.2: Stabalisation - TBD
-Stabalisation need to be done every time a new node joins or leaves the system.
+### Task 3.1.2: Stabalisation
+Stabalisation need to be done every time a new node joins or leaves the system. Everytime a new node joins the structure of the ring changes a little and mapping of the keys to the server changes; every node that detect a failure or the joining of the node kicks in the stabalisation protocol - where every key in the store is checked for it's mapping and respective mappings are sent to the replicas. These replicas will store the key value pair is they dont already have it. Once it has received response from each node, the node that detected will remove unwanted keys from it's store;
 
 ## TASK 3.2: Test Storage Replication & Stabalisation
 TBD

@@ -31,7 +31,7 @@ var Membership = function(app, port, joincb, churncb) {
     this.joinReqRetryCount = 0;                 // count of attempts of joinreq
     this.joinReqRetryCountThreshold = 3;        // threshold for above count
     this.joinReqRetryCountTimeout = 1000;       // timeout for join req
-    this.protocolPeriod = 2 * 1000;           // protocol period
+    this.protocolPeriod = 1 * 1000;           // protocol period
     this.KMax = 1;                              // no of K for ping_req
     this.suspisionLimit = 2;                    // No of times of protocol period
                                                 // a node under suspision will be
@@ -79,7 +79,9 @@ Membership.prototype.addToList = function(port, heartbeat) {
         timestamp: Kernel.getTimestamp(),
         status: "active"
     };
-    console.log("JOINED: " +port);
+
+    if (process.env.NODE_ENV != 'test')
+        console.log("JOINED: " +port);
     if (this.joincb) this.joincb(port);
 }
 
@@ -103,11 +105,13 @@ Membership.prototype.updateList = function(port, status, heartbeat = null) {
             setTimeout(function() {
                 if (!(port in this.list)) return;
                 if (this.list[port].status != "active") {
-                    console.log("failed: %s", port)
+                    if (process.env.NODE_ENV != 'test')
+                        console.log("failed: %s", port)
                     delete this.list[port];
                     if ($this.churncb) $this.churncb(port)
                 } else {
-                    console.log("suspicion over: %s", port)
+                    if (process.env.NODE_ENV != 'test')
+                        console.log("suspicion over: %s", port)
                 }
             }.bind(this), this.protocolPeriod * this.suspisionLimit);
         }

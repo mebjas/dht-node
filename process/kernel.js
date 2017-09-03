@@ -87,7 +87,7 @@ var Kernel = {
         return tmp;
     },
 
-    // method to calculate hash count of any key
+    // Method to calculate hash count of any key
     hash: function(key) {
         if (!key) {
             throw Error("ArgumentException");
