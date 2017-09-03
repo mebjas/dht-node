@@ -88,24 +88,13 @@ Now that underlying membership protocol works reasonably well and it can both de
 Each node is a member of the ring and their position is calculated based on a hash function of this format:
 ```js
 hash: function(key) {
-        if (!key) {
-                throw Error("ArgumentException");
-        }
-
-        var hash = 0
-        for (i = 0; i < key.length; i++) {
-                if (key[i].charCodeAt(0) < 97) {
-                hash += (key[i].charCodeAt(0) - 48);
-                } else {
-                hash += ((key[i].charCodeAt(0) - 97) + 10);
-                }
-        }
-        return hash;
+        return key - 8080;
 }
 
 positionInRing = hash(sha1(port).substr(0, 40))
 ```
-### Note: this function is very crude and has only been tested to give collision free ids to each port in range [8080, 8100]. Some collisions were observed beyond this range. If you are reproducing, you are adviced to instantiate nodes with similar range or change the hash function to a more appropriate one; This one gives value between [0, 600].
+### ~~Note: this function is very crude and has only been tested to give collision free ids to each port in range [8080, 8100]. Some collisions were observed beyond this range. If you are reproducing, you are adviced to instantiate nodes with similar range or change the hash function to a more appropriate one; This one gives value between [0, 600].~~
+### Changed hash function to be as simple as `key - 8080`. It can take values between 8080 & 8336 and give a unique ring id between `[0, 256)`. Thus max ring size if 256 for now; 
 
 ### Some other points
  - Any no of nodes can be created; given their hash shouldn't collide;
@@ -157,8 +146,9 @@ DELETE /s/key?key=key9 HTTP/1.1
 Host: localhost:8081
 ```
 ## References:
- - Coursera Cloud Computing Concepts, Part 1 - https://www.coursera.org/learn/cloud-computing/home/welcome
- - 
+ - Coursera Cloud Computing Concepts, Part 1 - [https://www.coursera.org/learn/cloud-computing/home/welcome](https://www.coursera.org/learn/cloud-computing/home/welcome)
+ - Building a Distributed Fault-Tolerant Key-Value Store - [http://blog.fourthbit.com/2015/04/12/building-a-distributed-fault-tolerant-key-value-store](http://blog.fourthbit.com/2015/04/12/building-a-distributed-fault-tolerant-key-value-store)
+ - Consistent hashing in Cassandra - [https://blog.imaginea.com/consistent-hashing-in-cassandra/](https://blog.imaginea.com/consistent-hashing-in-cassandra/)
 
 
 

@@ -103,15 +103,19 @@ var Kernel = {
         return hash;
     },
 
-    // hash function for port. Note: this seem to be a very week
-    // method. But I have observed it to give unique value for port
-    // 8080 - 8100; range [0, 600]
+    // hash function for port. Note: this is very naive method
+    // But will give unique values for ports between [8080, 8336)
     hashPort: function(port) {
         if (!port) {
             throw Error("ArgumentException");
         }
 
-        return this.hash(sha1(port).substr(0, 40))
+        if (port < 8080 || port >= 8336) {
+            throw Error("port has to be in range of [8080, 8336)")
+        }
+
+        // return this.hash(sha1(port).substr(0, 40))
+        return port - 8080;
     },
 
     // find the index position of given key in DHT
