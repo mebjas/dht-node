@@ -153,7 +153,9 @@ var Topology = function(app, port, introducer = null) {
     // READ API
     this.app.get('/d/read', function(req, res) {
         var key = req.query.key;
-        console.log(sprintf("dREAD: %s", key));
+        if (process.env.NODE_ENV != 'test')
+            console.log(sprintf("dREAD: %s", key));
+
         if (!key) {
             res.status(400).send('Key missing in query');
         } else {
@@ -164,7 +166,9 @@ var Topology = function(app, port, introducer = null) {
     // READ REPAIR API
     this.app.post('/d/readrepair', function(req, res) {
         var data = req.body.data;
-        console.log(sprintf("dREADREPAIR: %s", data.key));
+        if (process.env.NODE_ENV != 'test')
+            console.log(sprintf("dREADREPAIR: %s", data.key));
+
         if (!data || !data.key || !data.value) {
             return res.status(400).send('Key missing; bad request');
         }
@@ -187,7 +191,9 @@ var Topology = function(app, port, introducer = null) {
         if (!key || !value) {
             return res.status(400).send("Key or Value missing");
         }
-        console.log(sprintf("dWRITE: %s, val: %s", key, value));
+
+        if (process.env.NODE_ENV != 'test')
+            console.log(sprintf("dWRITE: %s, val: %s", key, value));
 
         $this.datastore.set(key, value);
         res.json({ack: true});
@@ -196,7 +202,9 @@ var Topology = function(app, port, introducer = null) {
     // DELETE API
     this.app.delete('/d/delete', function(req, res) {
         var key = req.query.key;
-        console.log(sprintf("dDELETE: %s", key));
+ 
+        if (process.env.NODE_ENV != 'test')
+            console.log(sprintf("dDELETE: %s", key));
         
         if (!key) {
             res.status(400).send('Key missing in query');
@@ -214,7 +222,10 @@ var Topology = function(app, port, introducer = null) {
     // STABALISATION API
     this.app.post('/d/stabalisation', function(req, res) {
         var data = req.body.data;
-        console.log("dStabalisation: Count", data.length);
+
+        if (process.env.NODE_ENV != 'test')
+            console.log("dStabalisation: Count", data.length);
+
         data.forEach(function(d) {
             try {
                 $this.datastore.set(d.key, d.value.value, d.value.timestamp);
