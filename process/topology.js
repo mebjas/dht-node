@@ -187,15 +187,20 @@ var Topology = function(app, port, introducer = null) {
     this.app.post('/d/write', function(req, res) {
         var key = req.body.key;
         var value = req.body.value;
+        var timestamp = req.body.timestamp;
 
-        if (!key || !value) {
-            return res.status(400).send("Key or Value missing");
+        if (!key || !value || !timestamp) {
+            return res.status(400).send("Key, Value or Timestamp missing");
         }
 
         if (process.env.NODE_ENV != 'test')
             console.log(sprintf("dWRITE: %s, val: %s", key, value));
 
-        $this.datastore.set(key, value);
+        try {
+            $this.datastore.set(key, value, timestamp);
+        } catch (ex) {
+            console.log(ex);
+        }
         res.json({ack: true});
     });
 
@@ -370,7 +375,7 @@ var Topology = function(app, port, introducer = null) {
                     port,
                     "d/write",
                     "POST",
-                    {key: key, value: value},
+                    {key: key, value: value, timestamp: Kernel.getTimestamp()},
                     function(resp, body) {
                         responses.push(true);
                         responseCallback();
