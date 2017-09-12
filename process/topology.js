@@ -211,11 +211,12 @@ var Topology = function(app, port, introducer = null) {
         } else {
              try {
                 $this.datastore.delete(key);
+                res.json({ack: true})
             }
             catch (ex) {
                 console.log("Key delete error; " +ex.message);
+                res.status(400).send('Key missing in query');
             }
-            res.json({ack: true})
         }
     });
 
@@ -416,10 +417,11 @@ var Topology = function(app, port, introducer = null) {
             if (port == $this.port) {
                 try {
                     $this.datastore.delete(key);
+                    responses.push(true);
                 } catch (ex) {
                     console.log("EX while self delete; ", ex.message)
+                    responses.push(false);
                 }
-                responses.push(true);
                 responseCallback();
             } else {
                 // send request to port
