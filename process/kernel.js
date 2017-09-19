@@ -8,49 +8,70 @@ const sha1 = require('sha1');
 const sprintf = require('sprintf').sprintf;
 
 var Kernel = {
+    // types of request
+    RequestTypes: {
+        POST: "POST",
+        GET: "GET",
+        DELETE: "DELETE"
+    },
+
+    // Constants
+    Constants: {
+        TestEnv: "test",
+        VerboseEnv: "verbose",
+        SilentEnv: "silent"
+    },
+
     // disemminator of any request
     // @param: port (int)
     send: function(port, path, type, object, callback, errcallback) {
-        if (!port || !path || !type) {
-            throw Error("ArgumentException");
+        if (!port) {
+            throw Error("ArgumentException - port");
+        }
+
+        if (!path) {
+            throw Error("ArgumentException - path");
+        }
+
+        if (!type) {
+            throw Error("ArgumentException - type");
         }
         
+        // TODO: add support for network urls
         var url = sprintf("http://localhost:%d/%s", port, path);
+
+        // callback for requests
+        var requestCallback = (err, response, body) => {
+            if (err && errcallback) errcallback(err);
+            if (!err && callback) callback(response, body);
+        }
+
         switch (type) {
             case "GET":
-            // assumption - object is of form a=b&c=d
             url += '?' +object;
-            request.get(url, function(err, response, body) {
-                if (err && errcallback) errcallback(err);
-                if (!err && callback) callback(response, body);
-            });
+            request.get(url, requestCallback);
             break;
 
             case "POST":
-            request.post(url, {form: object}, function(err, response, body) {
-                if (err && errcallback) errcallback(err);
-                if (!err && callback) callback(response, body);
-            });
+            request.post(url, {form: object}, requestCallback);
             break;
 
             case "DELETE":
             url += '?' +object;
-            request.delete(url, function(err, response, body) {
-                if (err && errcallback) errcallback(err);
-                if (!err && callback) callback(response, body);
-            });
+            request.delete(url, requestCallback);
             break;
+
             default:
             throw Error(sprintf("Unknown request type: %s", type))
         }
     },
 
-    // static method to get current timestamp
+    // method to get current timestamp
     getTimestamp: function() {
         return (new Date()).getTime();
     },
 
-    // random generator
+    // random number generator
     random: function(min, max) {
         if (min > max) {
             throw Error("Invalid args; min need to be <= max");
@@ -131,7 +152,7 @@ var Kernel = {
         } else {
             var _hash = this.hash(sha1(key));
             for (i = 0; i < maxReplicas; i++) {
-                indexes.push((_hash + i)% max);
+                indexes.push((_hash + i) % max);
             }
         }
         return indexes;

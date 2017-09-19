@@ -89,7 +89,7 @@ var Datastore = function() {
             var indexes = Kernel.hashKey(key, max, maxReplicas);
             // if (indexes.indexOf(index) == -1) {
             indexes.forEach(function(_index) {
-                if (_index == index) return;
+                if (_index === index) return;
 
                 if (!(_index in stabalisationMetadata)) {
                     stabalisationMetadata[_index] = [];
