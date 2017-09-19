@@ -1,4 +1,7 @@
 # dht-node
+
+[![Build Status](https://travis-ci.org/mebjas/dht-node.svg?branch=master)](https://travis-ci.org/mebjas/dht-node)
+
 I did a course on `Distributed Systems` during BTech and also took a course on on `Cloud Computing Concepts 1` by Dr Indranil Gupta (UIUC) long back and for long I have been thinking about trying out the principles explained in the course together as something meaningful. There are assignments in the course which you need to finish, but they don't require you to just club all of them together. I wish to try something out where most of the major concepts are used;
 
  We use distributed systems alot in our development pipelines but most of the concepts are abstracted out by the cloud solutions. I work for Microsoft Azure, and we use concepts like scheduling, queuing, distributed caching all the time but most of these are provided as a SaaS offering - hence it's mostly:
