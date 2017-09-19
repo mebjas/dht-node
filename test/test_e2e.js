@@ -9,7 +9,7 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const request = require('request');
 const sprintf = require('sprintf').sprintf;
-const kernel = require('../kernel.js');
+const kernel = require('../process/kernel.js');
 chai.use(chaiHttp);
 
 function spawnANode(port, introducer) {

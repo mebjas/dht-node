@@ -7,8 +7,8 @@ const express = require('express')
 const request = require('request')
 const bodyParser = require('body-parser')
 const sprintf = require("sprintf").sprintf;
-const Membership = require("../membership.js")
-const Kernel = require('../kernel.js')
+const Membership = require("../process/membership.js")
+const Kernel = require('../process/kernel.js')
 
 var app = express()
 app.use(bodyParser.json());

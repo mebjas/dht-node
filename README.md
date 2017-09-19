@@ -37,10 +37,9 @@ Plan is to follow a cassandra like architecture where nodes maintain a virtual r
 Pre requisite
  - Download nodejs and npm for windows
  - Clone this repo: `git clone https://github.com/mebjas/dht-node.git`
- - CD to process dir: `cd process` - this path contain the code for process
  - Install the libraries - `npm install`
  - Run Tests - `npm test`
- - Initialize 24 nodes: `cd ..\ && .\init.cmd`
+ - Initialize 24 nodes: `.\init.cmd`
 
 To run just `N` nodes skip the last step and manually invoke an instance using:
 ```cmd

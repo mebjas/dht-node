@@ -7,7 +7,7 @@ const express = require('express')
 const request = require('request')
 const bodyParser = require('body-parser')
 const sprintf = require("sprintf").sprintf;
-const Datastore = require("../datastore.js")
+const Datastore = require("../process/datastore.js")
 
 var datastore = new Datastore()
 

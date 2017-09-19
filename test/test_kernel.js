@@ -2,7 +2,7 @@
 process.env.NODE_ENV = 'test';
 
 const assert = require('assert');
-const Kernel = require('../kernel.js')
+const Kernel = require('../process/kernel.js')
 
 describe('Kernel', function() {
     describe('#getTimestamp()', function() {

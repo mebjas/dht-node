@@ -7,12 +7,19 @@ const express = require('express')
 const request = require('request')
 const bodyParser = require('body-parser')
 const sprintf = require("sprintf").sprintf;
-const Kernel = require("../kernel.js")
-const Server = require('../server.js')
+const Kernel = require("../process/kernel.js")
+const Topology = require('../process/topology.js')
 
-var server = new Server(8080, null)
+var app = express()
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
 
-describe('Server', function() {
+var testPort = 8100;
+app.listen(testPort);
+
+var topology = new Topology(app, testPort)
+
+describe('Topology', function() {
     describe('Placeholder', function() {
         it ('Placeholder', function() {
             assert.equal(1,1);
