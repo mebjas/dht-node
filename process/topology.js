@@ -25,14 +25,16 @@ var Topology = function(app, port, introducer = null) {
 
     var stabalisationInProcess = false;         // stabalisation state
     var stabalisationWaitTimeout = 1000;        // timeout for stabalisation
+    var stabalisationMethodTimeout = 5000;      // timeout for stabalisation method, so that
+                                                // it doesn't wait infinitely
     var stabalisationRetryLimit = 5;            // retry limit for stabalisation wait;
     
     // REGION: Private methods ---------------------------------------------
     // sending stabalisation message to all;
-    var sendStabalisationMessage = function(port, data, callback, retryCount = 0) {
+    var sendStabalisationMessage = (port, data, callback, retryCount = 0) => {
         if (retryCount > stabalisationRetryLimit) {
             console.log("SendStabalisation retry exceeded, port", port);
-            callback();
+            if (callback) callback();
             return;
         }
 
@@ -42,8 +44,8 @@ var Topology = function(app, port, introducer = null) {
         Kernel.send(
             parseInt(port),
             "d/stabalisation",
-            "POST",
-            {data: data},
+            Kernel.RequestTypes.POST,
+            { data: data },
             function(response, body) {
                 callback();
             }, function(err) {
@@ -53,14 +55,14 @@ var Topology = function(app, port, introducer = null) {
     }
 
     // Common stabalisation method
-    var stabalisation = function() {
+    var stabalisation = () => {
         list.sort(function(a, b) {
             return (a > b) ? 1 : -1;
         });
 
         var newIndex = list.indexOf(id);
-        var stabalsiationMetadata = $this.datastore.getRemappedData(
-            newIndex, list.length, $this.maxReplicas);
+        var stabalsiationMetadata = $this.datastore
+            .getRemappedData(newIndex, list.length, $this.maxReplicas);
         
         if (Object.keys(stabalsiationMetadata).length == 0) {
             stabalisationInProcess = false;
@@ -68,9 +70,9 @@ var Topology = function(app, port, introducer = null) {
         }
 
         var stabalised = 0;
-        Object.keys(stabalsiationMetadata).forEach(function(_id) {
-            var port = listPortMapping[_id];
-            sendStabalisationMessage(port, stabalsiationMetadata[_id], function() {
+        Object.keys(stabalsiationMetadata).forEach((_id) => {
+            var port = listPortMapping[list[_id]];
+            sendStabalisationMessage(port, stabalsiationMetadata[_id], () => {
                 ++stabalised;
                 if (stabalised >= Object.keys(stabalsiationMetadata).length) {
                     stabalisationInProcess = false;
@@ -80,11 +82,11 @@ var Topology = function(app, port, introducer = null) {
         });
     }
 
-    // stabalisation to perform when a new member joins - TODO: complete this
-    var joinStabalisation = function(joinPort, retryCount = 0) {
+    // stabalisation to perform when a new member joins
+    var joinStabalisation = (joinPort, retryCount = 0) => {
         if (retryCount > stabalisationRetryLimit) {
             // not harmful as it sounds
-            // console.log("retry limit for stabalisation; port:", joinPort)
+            console.log("retry limit for stabalisation; port:", joinPort)
             return;
         }
 
@@ -96,12 +98,12 @@ var Topology = function(app, port, introducer = null) {
         }
 
         stabalisationInProcess = true;
-        console.log("Stabalisation (+ve): ", joinPort)
+        console.log("[SIN] Stabalisation (+ve): ", joinPort)
         var joinPortId = Kernel.hashPort(joinPort);
         listPortMapping[joinPortId] = joinPort;
 
         if (list.indexOf(joinPortId) != -1) {
-            console.log("STABALISATION_HALT, already in: ", joinPort, joinPortId);
+            console.log("[SOUT] STABALISATION_HALT, already in: ", joinPort, joinPortId);
             stabalisationInProcess = false;
             return;
         }
@@ -112,26 +114,29 @@ var Topology = function(app, port, introducer = null) {
     }
 
     // statbalisation to perform when an old member leaves
-    var churnStabalisation = function(chrunPort, retryCount = 0) {
+    var churnStabalisation = (chrunPort, retryCount = 0) => {
         if (retryCount > stabalisationRetryLimit) {
             // Not harmful as it sounds
-            // console.log("retry limit for stabalisation; port:", chrunPort)
+            console.log("retry limit for stabalisation; port:", chrunPort)
             return;
         }
 
         if (stabalisationInProcess) {
-            setTimeout(function() {
+            setTimeout(() => {
                 churnStabalisation(chrunPort, retryCount + 1)
             }, stabalisationWaitTimeout);
             return;
         }
 
         stabalisationInProcess = true;
-        console.log("Stabalisation (-ve): ", chrunPort)
+        console.log("[SIN] Stabalisation (-ve): ", chrunPort)
         var chrunPortId = Kernel.hashPort(chrunPort);
 
         if (list.indexOf(chrunPortId) == -1) {
-            console.log("STABALISATION_HALT, already not in: ", chrunPort, chrunPortId);
+            console.log(
+                "[SOUT] STABALISATION_HALT, already not in: ",
+                chrunPort,
+                chrunPortId);
             stabalisationInProcess = false;
             return;
         }
@@ -139,7 +144,6 @@ var Topology = function(app, port, introducer = null) {
         // remove this from list
         const index = list.indexOf(chrunPortId);
         list.splice(index, 1);
-
         stabalisation();
     }
     
@@ -151,9 +155,9 @@ var Topology = function(app, port, introducer = null) {
 
     // Initialize the internal apis  --------
     // READ API
-    this.app.get('/d/read', function(req, res) {
+    this.app.get('/d/read', (req, res) => {
         var key = req.query.key;
-        if (process.env.NODE_ENV != 'test')
+        if (process.env.NODE_ENV !== Kernel.Constants.TestEnv)
             console.log(sprintf("dREAD: %s", key));
 
         if (!key) {
@@ -164,9 +168,9 @@ var Topology = function(app, port, introducer = null) {
     })
 
     // READ REPAIR API
-    this.app.post('/d/readrepair', function(req, res) {
+    this.app.post('/d/readrepair', (req, res) => {
         var data = req.body.data;
-        if (process.env.NODE_ENV != 'test')
+        if (process.env.NODE_ENV != Kernel.Constants.TestEnv)
             console.log(sprintf("dREADREPAIR: %s", data.key));
 
         if (!data || !data.key || !data.value) {
@@ -184,7 +188,7 @@ var Topology = function(app, port, introducer = null) {
     })
 
     // WRITE API
-    this.app.post('/d/write', function(req, res) {
+    this.app.post('/d/write', (req, res) => {
         var key = req.body.key;
         var value = req.body.value;
         var timestamp = req.body.timestamp;
@@ -193,7 +197,7 @@ var Topology = function(app, port, introducer = null) {
             return res.status(400).send("Key, Value or Timestamp missing");
         }
 
-        if (process.env.NODE_ENV != 'test')
+        if (process.env.NODE_ENV != Kernel.Constants.TestEnv)
             console.log(sprintf("dWRITE: %s, val: %s", key, value));
 
         try {
@@ -205,10 +209,10 @@ var Topology = function(app, port, introducer = null) {
     });
 
     // DELETE API
-    this.app.delete('/d/delete', function(req, res) {
+    this.app.delete('/d/delete', (req, res) => {
         var key = req.query.key;
  
-        if (process.env.NODE_ENV != 'test')
+        if (process.env.NODE_ENV != Kernel.Constants.TestEnv)
             console.log(sprintf("dDELETE: %s", key));
         
         if (!key) {
@@ -226,28 +230,36 @@ var Topology = function(app, port, introducer = null) {
     });
 
     // STABALISATION API
-    this.app.post('/d/stabalisation', function(req, res) {
+    this.app.post('/d/stabalisation', (req, res) => {
         var data = req.body.data;
 
-        if (process.env.NODE_ENV != 'test')
+        if (process.env.NODE_ENV != Kernel.Constants.TestEnv) {
             console.log("dStabalisation: Count", data.length);
+        }
 
-        data.forEach(function(d) {
-            try {
-                $this.datastore.set(d.key, d.value.value, d.value.timestamp);
-            } catch (ex) {
-                // expected; its ok
-            }
-        });
-        res.json({ack: true});
+        if (data && data.length) {
+            data.forEach(function(d) {
+                try {
+                    $this.datastore.set(d.key, d.value.value, d.value.timestamp);
+                } catch (ex) {
+                    // expected; its ok
+                }
+            });
+            res.json({ack: true});
+        } else {
+            console.log('undefined or empty payload');
+            res.json({ack: true, error: 'undefined or empty payload'})
+        }
+
     });
     
+    // ----------------------------------------------------------------
     // REGION: public methods that shall use private variables
     // TODO: below three methods seems to have some code overlap
     // check what can be taken out of it;
     
     // Method to get the key
-    this.get = function(key, callback, retryCount = 0) {
+    this.get = (key, callback, retryCount = 0) => {
         if (!key || !callback) {
             throw Error("ArgumentException")
         }
@@ -258,12 +270,12 @@ var Topology = function(app, port, introducer = null) {
         var indexes = Kernel.hashKey(key, list.length, this.maxReplicas);
         var responses = [];
 
-        var responseCallback = function() {
+        var responseCallback = () => {
             if (responses.length != indexes.length) return;
 
             // look at +ve responses, count and get val;
             var val = null, positiveCount = 0;
-            responses.forEach(function(response) {
+            responses.forEach((response) => {
                 if (response != null && response.value != null) {
                     ++positiveCount;
                     if (val) {
@@ -273,8 +285,8 @@ var Topology = function(app, port, introducer = null) {
                                 Kernel.send(
                                     val.by,
                                     "d/readrepair",
-                                    "POST",
-                                    {data: {key: key, value: val.value}},
+                                    Kernel.RequestTypes.POST,
+                                    { data: {key: key, value: val.value} },
                                     function(response, body) {
                                         // console.log(body);
                                     }, function(err) {
@@ -291,7 +303,7 @@ var Topology = function(app, port, introducer = null) {
             });
 
             if (indexes.length < $this.quorumCount) {
-                if (positiveCount != indexes.length) callback(null);
+                if (positiveCount !== indexes.length) callback(null);
                 else callback(val.value);
             } else if (positiveCount < $this.quorumCount) {
                 callback(null);
@@ -300,7 +312,7 @@ var Topology = function(app, port, introducer = null) {
             }
         }
 
-        indexes.forEach(function(index) {
+        indexes.forEach((index) => {
             var port = listPortMapping[list[index]];
             if (port == $this.port) {
                 responses.push({
@@ -313,7 +325,7 @@ var Topology = function(app, port, introducer = null) {
                 Kernel.send(
                     port,
                     "d/read",
-                    "GET",
+                    Kernel.RequestTypes.GET,
                     sprintf("key=%s", key),
                     function(resp, body) {
                         try {
@@ -335,7 +347,7 @@ var Topology = function(app, port, introducer = null) {
     }
 
     // Method to set the key
-    this.set = function(key, value, callback, retryCount = 0) {
+    this.set = (key, value, callback, retryCount = 0) => {
         if (!key || !value || !callback) {
             throw Error("ArgumentException");
         }
@@ -389,7 +401,7 @@ var Topology = function(app, port, introducer = null) {
     }
 
     // Method to delete a key
-    this.delete = function(key, callback, retryCount = 0) {
+    this.delete = (key, callback, retryCount = 0) => {
         if (!key || !callback) {
             throw Error("ArgumentException")
         }
@@ -401,10 +413,10 @@ var Topology = function(app, port, introducer = null) {
         var indexes = Kernel.hashKey(key, list.length, this.maxReplicas);
         var responses = [];
 
-        var responseCallback = function() {
+        var responseCallback = () => {
             if (responses.length != indexes.length) return;
             var positiveCount = 0;
-            responses.forEach(function(response) {
+            responses.forEach((response) => {
                 if (response) positiveCount++;
             });
 
@@ -417,7 +429,7 @@ var Topology = function(app, port, introducer = null) {
             } else callback(null);
         }
 
-        indexes.forEach(function(index) {
+        indexes.forEach((index) => {
             var port = listPortMapping[list[index]];
             if (port == $this.port) {
                 try {
@@ -433,7 +445,7 @@ var Topology = function(app, port, introducer = null) {
                 Kernel.send(
                     port,
                     "d/delete",
-                    "DELETE",
+                    Kernel.RequestTypes.DELETE,
                     "key=" +key,
                     function(resp, body) {
                         responses.push(true);
